@@ -2,37 +2,37 @@
 * param Q2 := 1;
 * do print file2;
 * param nC := read file1 as "1n" use 1;
-* param nN := read file1 as "2n" use 1;
+* param nI := read file1 as "2n" use 1;
 * param m  := read file1 as "3n" use 1;
 * param nT := read file1 as "4n" use 1;
 * param nP := read file2 as "1n" use 1;
 * set C := { 1 .. nC };
-* set N := { 1 .. nN };
+* set I := { 1 .. nI };
 * set T0 := { 0 .. nT };
 * set T := { 1 .. nT };
 * set P := { 1 .. nP };
-* param inveCost[N] := read file1 as "<1n> 2n" skip 1 use nN;
-* param backCost[N] := read file1 as "<1n> 2n" skip nN+1 use nN;
-* param demand[C*N*T] := read file1 as "<1n,2n,3n> 4n" skip 2*nN+1;
-* param q[P*N] := read file2 as "<1n,2n> 3n" skip 1;
-* param D[<c,i> in C*N] := ceil( sum <t> in T : demand[c,i,t]/Q2 );
-* set Pc[<c> in C] := inter <i> in { <i> in N with ( sum <t> in T : demand[c,i,t] ) > 0 } : { <j> in P with q[j,i] > 0 };
-* param M[<c,j> in C*P] := max <i> in N : ceil( sum <t> in T : demand[c,i,t]/Q2/q[j,i] );
-* var B[C*N*T0] >= 0;
-* var I[C*N*T0] >= 0;
-* var f[C*N*T] integer >= 0;
+* param inveCost[I] := read file1 as "<1n> 2n" skip 1 use nI;
+* param backCost[I] := read file1 as "<1n> 2n" skip nI+1 use nI;
+* param demand[C*I*T] := read file1 as "<1n,2n,3n> 4n" skip 2*nI+1;
+* param q[P*I] := read file2 as "<1n,2n> 3n" skip 1;
+* param D[<c,i> in C*I] := ceil( sum <t> in T : demand[c,i,t]/Q2 );
+* set Pc[<c> in C] := inter <i> in { <i> in I with ( sum <t> in T : demand[c,i,t] ) > 0 } : { <p> in P with q[p,i] > 0 };
+* param M[<c,p> in C*P] := max <i> in I with q[p,i] > 0: ceil( sum <t> in T : demand[c,i,t]/Q2/q[p,i] );
+* var r[C*I*T0] >= 0;
+* var s[C*I*T0] >= 0;
+* var x[C*I*T] integer >= 0;
 * var y[C*P*T] integer >= 0;
-* var p[P] binary;
-* minimize cost: sum <i> in N: ( sum <t> in T: (sum <c> in C : (inveCost[i] * I[c,i,t]  + backCost[i] * B[c,i,t]) ));
-* subto select:       sum <j> in P: p[j] <= m;
-* subto balance:    forall <c,i,t> in C*N*T with t>=1 do       I[c,i,t-1] - B[c,i,t-1] + Q1*Q2*f[c,i,t] + Q2 * (sum <j> in Pc[c
-* ]: q[j,i] * y[c,j,t]) == demand[c,i,t] + I[c,i,t] - B[c,i,t];
-* subto valid:    forall <c,i> in C*N do       sum <t> in T: ( min(Q1, D[c,i]) * f[c,i,t] + sum <j> in Pc[c]: ( min(q[j,i], D[c
-* ,i] ) * y[c,j,t]) ) >= D[c,i];
-* subto BigM:    forall <c,j,t> in C*P*T with t>=1 do       y[c,j,t] <= M[c,j] * p[j];
-* subto init1:    forall <c,i> in C*N do       I[c,i,0] == 0;
-* subto init2:    forall <c,i> in C*N do       B[c,i,0] == 0;
-* subto init3:    forall <c,i> in C*N do       B[c,i,nT] == 0;
+* var z[P] binary;
+* minimize cost: sum <i> in I: ( sum <t> in T: (sum <c> in C : (inveCost[i] * s[c,i,t]  + backCost[i] * r[c,i,t]) ));
+* subto select:       sum <p> in P: z[p] <= m;
+* subto balance:    forall <c,i,t> in C*I*T with t>=1 do       s[c,i,t-1] - r[c,i,t-1] + Q1*Q2*x[c,i,t] + Q2 * (sum <p> in Pc[c
+* ]: q[p,i] * y[c,p,t]) == demand[c,i,t] + s[c,i,t] - r[c,i,t];
+* subto valid:    forall <c,i> in C*I do       sum <t> in T: ( min(Q1, D[c,i]) * x[c,i,t] + sum <p> in Pc[c]: ( min(q[p,i], D[c
+* ,i] ) * y[c,p,t]) ) >= D[c,i];
+* subto BigM:    forall <c,p,t> in C*P*T with t>=1 do       y[c,p,t] <= M[c,p] * z[p];
+* subto init1:    forall <c,i> in C*I do       s[c,i,0] == 0;
+* subto init2:    forall <c,i> in C*I do       r[c,i,0] == 0;
+* subto init3:    forall <c,i> in C*I do       r[c,i,nT] == 0;
 NAME          mpdp.zpl
 ROWS
  N  OBJECTIV          
@@ -214,66 +214,66 @@ ROWS
  E  init3_8           
 COLUMNS
     MARK0000  'MARKER'                 'INTORG'
-    f#1#1#1   valid_1             72
-    f#1#1#1   balanc@1            72
-    f#1#1#2   valid_1             72
-    f#1#1#2   balanc@2            72
-    f#1#1#3   valid_1             72
-    f#1#1#3   balanc@3            72
-    f#1#1#4   valid_1             72
-    f#1#1#4   balanc@4            72
-    f#1#2#1   valid_2             72
-    f#1#2#1   balanc@5            72
-    f#1#2#2   valid_2             72
-    f#1#2#2   balanc@6            72
-    f#1#2#3   valid_2             72
-    f#1#2#3   balanc@7            72
-    f#1#2#4   valid_2             72
-    f#1#2#4   balanc@8            72
-    f#2#1#1   valid_3             72
-    f#2#1#1   balanc@9            72
-    f#2#1#2   valid_3             72
-    f#2#1#2   balanc@a            72
-    f#2#1#3   valid_3             72
-    f#2#1#3   balanc@b            72
-    f#2#1#4   valid_3             72
-    f#2#1#4   balanc@c            72
-    f#2#2#1   valid_4             72
-    f#2#2#1   balanc@d            72
-    f#2#2#2   valid_4             72
-    f#2#2#2   balanc@e            72
-    f#2#2#3   valid_4             72
-    f#2#2#3   balanc@f            72
-    f#2#2#4   valid_4             72
-    f#2#2#4   balan@10            72
-    f#3#1#1   balan@11            72
-    f#3#1#2   balan@12            72
-    f#3#1#3   balan@13            72
-    f#3#1#4   balan@14            72
-    f#3#2#1   valid_5             72
-    f#3#2#1   balan@15            72
-    f#3#2#2   valid_5             72
-    f#3#2#2   balan@16            72
-    f#3#2#3   valid_5             72
-    f#3#2#3   balan@17            72
-    f#3#2#4   valid_5             72
-    f#3#2#4   balan@18            72
-    f#4#1#1   valid_6             72
-    f#4#1#1   balan@19            72
-    f#4#1#2   valid_6             72
-    f#4#1#2   balan@1a            72
-    f#4#1#3   valid_6             72
-    f#4#1#3   balan@1b            72
-    f#4#1#4   valid_6             72
-    f#4#1#4   balan@1c            72
-    f#4#2#1   valid_7             72
-    f#4#2#1   balan@1d            72
-    f#4#2#2   valid_7             72
-    f#4#2#2   balan@1e            72
-    f#4#2#3   valid_7             72
-    f#4#2#3   balan@1f            72
-    f#4#2#4   valid_7             72
-    f#4#2#4   balan@20            72
+    x#1#1#1   valid_1             72
+    x#1#1#1   balanc@1            72
+    x#1#1#2   valid_1             72
+    x#1#1#2   balanc@2            72
+    x#1#1#3   valid_1             72
+    x#1#1#3   balanc@3            72
+    x#1#1#4   valid_1             72
+    x#1#1#4   balanc@4            72
+    x#1#2#1   valid_2             72
+    x#1#2#1   balanc@5            72
+    x#1#2#2   valid_2             72
+    x#1#2#2   balanc@6            72
+    x#1#2#3   valid_2             72
+    x#1#2#3   balanc@7            72
+    x#1#2#4   valid_2             72
+    x#1#2#4   balanc@8            72
+    x#2#1#1   valid_3             72
+    x#2#1#1   balanc@9            72
+    x#2#1#2   valid_3             72
+    x#2#1#2   balanc@a            72
+    x#2#1#3   valid_3             72
+    x#2#1#3   balanc@b            72
+    x#2#1#4   valid_3             72
+    x#2#1#4   balanc@c            72
+    x#2#2#1   valid_4             72
+    x#2#2#1   balanc@d            72
+    x#2#2#2   valid_4             72
+    x#2#2#2   balanc@e            72
+    x#2#2#3   valid_4             72
+    x#2#2#3   balanc@f            72
+    x#2#2#4   valid_4             72
+    x#2#2#4   balan@10            72
+    x#3#1#1   balan@11            72
+    x#3#1#2   balan@12            72
+    x#3#1#3   balan@13            72
+    x#3#1#4   balan@14            72
+    x#3#2#1   valid_5             72
+    x#3#2#1   balan@15            72
+    x#3#2#2   valid_5             72
+    x#3#2#2   balan@16            72
+    x#3#2#3   valid_5             72
+    x#3#2#3   balan@17            72
+    x#3#2#4   valid_5             72
+    x#3#2#4   balan@18            72
+    x#4#1#1   valid_6             72
+    x#4#1#1   balan@19            72
+    x#4#1#2   valid_6             72
+    x#4#1#2   balan@1a            72
+    x#4#1#3   valid_6             72
+    x#4#1#3   balan@1b            72
+    x#4#1#4   valid_6             72
+    x#4#1#4   balan@1c            72
+    x#4#2#1   valid_7             72
+    x#4#2#1   balan@1d            72
+    x#4#2#2   valid_7             72
+    x#4#2#2   balan@1e            72
+    x#4#2#3   valid_7             72
+    x#4#2#3   balan@1f            72
+    x#4#2#4   valid_7             72
+    x#4#2#4   balan@20            72
     y#1#1#1   BigM_1               1
     y#1#1#1   valid_2             23
     y#1#1#1   valid_1             49
@@ -806,342 +806,342 @@ COLUMNS
     y#4#7#4   valid_6              7
     y#4#7#4   balan@20            65
     y#4#7#4   balan@1c             7
-    p#1       BigM_88            -97
-    p#1       BigM_87            -97
-    p#1       BigM_86            -97
-    p#1       BigM_85            -97
-    p#1       BigM_60            -78
-    p#1       BigM_59            -78
-    p#1       BigM_58            -78
-    p#1       BigM_57            -78
-    p#1       BigM_32            -95
-    p#1       BigM_31            -95
-    p#1       BigM_30            -95
-    p#1       BigM_29            -95
-    p#1       BigM_4             -93
-    p#1       BigM_3             -93
-    p#1       BigM_2             -93
-    p#1       BigM_1             -93
-    p#1       select_1             1
-    p#2       BigM_92            -74
-    p#2       BigM_91            -74
-    p#2       BigM_90            -74
-    p#2       BigM_89            -74
-    p#2       BigM_64            -39
-    p#2       BigM_63            -39
-    p#2       BigM_62            -39
-    p#2       BigM_61            -39
-    p#2       BigM_36           -121
-    p#2       BigM_35           -121
-    p#2       BigM_34           -121
-    p#2       BigM_33           -121
-    p#2       BigM_8             -86
-    p#2       BigM_7             -86
-    p#2       BigM_6             -86
-    p#2       BigM_5             -86
-    p#2       select_1             1
-    p#3       BigM_96           -213
-    p#3       BigM_95           -213
-    p#3       BigM_94           -213
-    p#3       BigM_93           -213
-    p#3       BigM_68            -29
-    p#3       BigM_67            -29
-    p#3       BigM_66            -29
-    p#3       BigM_65            -29
-    p#3       BigM_40           -349
-    p#3       BigM_39           -349
-    p#3       BigM_38           -349
-    p#3       BigM_37           -349
-    p#3       BigM_12           -248
-    p#3       BigM_11           -248
-    p#3       BigM_10           -248
-    p#3       BigM_9            -248
-    p#3       select_1             1
-    p#4       BigM_100           -70
-    p#4       BigM_99            -70
-    p#4       BigM_98            -70
-    p#4       BigM_97            -70
-    p#4       BigM_72            -56
-    p#4       BigM_71            -56
-    p#4       BigM_70            -56
-    p#4       BigM_69            -56
-    p#4       BigM_44            -79
-    p#4       BigM_43            -79
-    p#4       BigM_42            -79
-    p#4       BigM_41            -79
-    p#4       BigM_16            -67
-    p#4       BigM_15            -67
-    p#4       BigM_14            -67
-    p#4       BigM_13            -67
-    p#4       select_1             1
-    p#5       BigM_104           -66
-    p#5       BigM_103           -66
-    p#5       BigM_102           -66
-    p#5       BigM_101           -66
-    p#5       BigM_76            -53
-    p#5       BigM_75            -53
-    p#5       BigM_74            -53
-    p#5       BigM_73            -53
-    p#5       BigM_48            -83
-    p#5       BigM_47            -83
-    p#5       BigM_46            -83
-    p#5       BigM_45            -83
-    p#5       BigM_20            -63
-    p#5       BigM_19            -63
-    p#5       BigM_18            -63
-    p#5       BigM_17            -63
-    p#5       select_1             1
-    p#6       BigM_108           -86
-    p#6       BigM_107           -86
-    p#6       BigM_106           -86
-    p#6       BigM_105           -86
-    p#6       BigM_80            -69
-    p#6       BigM_79            -69
-    p#6       BigM_78            -69
-    p#6       BigM_77            -69
-    p#6       BigM_52            -84
-    p#6       BigM_51            -84
-    p#6       BigM_50            -84
-    p#6       BigM_49            -84
-    p#6       BigM_24            -82
-    p#6       BigM_23            -82
-    p#6       BigM_22            -82
-    p#6       BigM_21            -82
-    p#6       select_1             1
-    p#7       BigM_112          -273
-    p#7       BigM_111          -273
-    p#7       BigM_110          -273
-    p#7       BigM_109          -273
-    p#7       BigM_84            -28
-    p#7       BigM_83            -28
-    p#7       BigM_82            -28
-    p#7       BigM_81            -28
-    p#7       BigM_56           -448
-    p#7       BigM_55           -448
-    p#7       BigM_54           -448
-    p#7       BigM_53           -448
-    p#7       BigM_28           -319
-    p#7       BigM_27           -319
-    p#7       BigM_26           -319
-    p#7       BigM_25           -319
-    p#7       select_1             1
+    z#1       BigM_88            -97
+    z#1       BigM_87            -97
+    z#1       BigM_86            -97
+    z#1       BigM_85            -97
+    z#1       BigM_60            -78
+    z#1       BigM_59            -78
+    z#1       BigM_58            -78
+    z#1       BigM_57            -78
+    z#1       BigM_32            -95
+    z#1       BigM_31            -95
+    z#1       BigM_30            -95
+    z#1       BigM_29            -95
+    z#1       BigM_4             -93
+    z#1       BigM_3             -93
+    z#1       BigM_2             -93
+    z#1       BigM_1             -93
+    z#1       select_1             1
+    z#2       BigM_92            -74
+    z#2       BigM_91            -74
+    z#2       BigM_90            -74
+    z#2       BigM_89            -74
+    z#2       BigM_64            -39
+    z#2       BigM_63            -39
+    z#2       BigM_62            -39
+    z#2       BigM_61            -39
+    z#2       BigM_36           -121
+    z#2       BigM_35           -121
+    z#2       BigM_34           -121
+    z#2       BigM_33           -121
+    z#2       BigM_8             -86
+    z#2       BigM_7             -86
+    z#2       BigM_6             -86
+    z#2       BigM_5             -86
+    z#2       select_1             1
+    z#3       BigM_96           -213
+    z#3       BigM_95           -213
+    z#3       BigM_94           -213
+    z#3       BigM_93           -213
+    z#3       BigM_68            -29
+    z#3       BigM_67            -29
+    z#3       BigM_66            -29
+    z#3       BigM_65            -29
+    z#3       BigM_40           -349
+    z#3       BigM_39           -349
+    z#3       BigM_38           -349
+    z#3       BigM_37           -349
+    z#3       BigM_12           -248
+    z#3       BigM_11           -248
+    z#3       BigM_10           -248
+    z#3       BigM_9            -248
+    z#3       select_1             1
+    z#4       BigM_100           -70
+    z#4       BigM_99            -70
+    z#4       BigM_98            -70
+    z#4       BigM_97            -70
+    z#4       BigM_72            -56
+    z#4       BigM_71            -56
+    z#4       BigM_70            -56
+    z#4       BigM_69            -56
+    z#4       BigM_44            -79
+    z#4       BigM_43            -79
+    z#4       BigM_42            -79
+    z#4       BigM_41            -79
+    z#4       BigM_16            -67
+    z#4       BigM_15            -67
+    z#4       BigM_14            -67
+    z#4       BigM_13            -67
+    z#4       select_1             1
+    z#5       BigM_104           -66
+    z#5       BigM_103           -66
+    z#5       BigM_102           -66
+    z#5       BigM_101           -66
+    z#5       BigM_76            -53
+    z#5       BigM_75            -53
+    z#5       BigM_74            -53
+    z#5       BigM_73            -53
+    z#5       BigM_48            -83
+    z#5       BigM_47            -83
+    z#5       BigM_46            -83
+    z#5       BigM_45            -83
+    z#5       BigM_20            -63
+    z#5       BigM_19            -63
+    z#5       BigM_18            -63
+    z#5       BigM_17            -63
+    z#5       select_1             1
+    z#6       BigM_108           -86
+    z#6       BigM_107           -86
+    z#6       BigM_106           -86
+    z#6       BigM_105           -86
+    z#6       BigM_80            -69
+    z#6       BigM_79            -69
+    z#6       BigM_78            -69
+    z#6       BigM_77            -69
+    z#6       BigM_52            -84
+    z#6       BigM_51            -84
+    z#6       BigM_50            -84
+    z#6       BigM_49            -84
+    z#6       BigM_24            -82
+    z#6       BigM_23            -82
+    z#6       BigM_22            -82
+    z#6       BigM_21            -82
+    z#6       select_1             1
+    z#7       BigM_112          -273
+    z#7       BigM_111          -273
+    z#7       BigM_110          -273
+    z#7       BigM_109          -273
+    z#7       BigM_84            -28
+    z#7       BigM_83            -28
+    z#7       BigM_82            -28
+    z#7       BigM_81            -28
+    z#7       BigM_56           -448
+    z#7       BigM_55           -448
+    z#7       BigM_54           -448
+    z#7       BigM_53           -448
+    z#7       BigM_28           -319
+    z#7       BigM_27           -319
+    z#7       BigM_26           -319
+    z#7       BigM_25           -319
+    z#7       select_1             1
     MARK0001  'MARKER'                 'INTEND'
-    B#1#1#0   init2_1              1
-    B#1#1#0   balanc@1            -1
-    B#1#1#1   OBJECTIV             5
-    B#1#1#1   balanc@2            -1
-    B#1#1#1   balanc@1             1
-    B#1#1#2   OBJECTIV             5
-    B#1#1#2   balanc@3            -1
-    B#1#1#2   balanc@2             1
-    B#1#1#3   OBJECTIV             5
-    B#1#1#3   balanc@4            -1
-    B#1#1#3   balanc@3             1
-    B#1#1#4   OBJECTIV             5
-    B#1#1#4   init3_1              1
-    B#1#1#4   balanc@4             1
-    B#1#2#0   init2_2              1
-    B#1#2#0   balanc@5            -1
-    B#1#2#1   OBJECTIV           5.5
-    B#1#2#1   balanc@6            -1
-    B#1#2#1   balanc@5             1
-    B#1#2#2   OBJECTIV           5.5
-    B#1#2#2   balanc@7            -1
-    B#1#2#2   balanc@6             1
-    B#1#2#3   OBJECTIV           5.5
-    B#1#2#3   balanc@8            -1
-    B#1#2#3   balanc@7             1
-    B#1#2#4   OBJECTIV           5.5
-    B#1#2#4   init3_2              1
-    B#1#2#4   balanc@8             1
-    B#2#1#0   init2_3              1
-    B#2#1#0   balanc@9            -1
-    B#2#1#1   OBJECTIV             5
-    B#2#1#1   balanc@a            -1
-    B#2#1#1   balanc@9             1
-    B#2#1#2   OBJECTIV             5
-    B#2#1#2   balanc@b            -1
-    B#2#1#2   balanc@a             1
-    B#2#1#3   OBJECTIV             5
-    B#2#1#3   balanc@c            -1
-    B#2#1#3   balanc@b             1
-    B#2#1#4   OBJECTIV             5
-    B#2#1#4   init3_3              1
-    B#2#1#4   balanc@c             1
-    B#2#2#0   init2_4              1
-    B#2#2#0   balanc@d            -1
-    B#2#2#1   OBJECTIV           5.5
-    B#2#2#1   balanc@e            -1
-    B#2#2#1   balanc@d             1
-    B#2#2#2   OBJECTIV           5.5
-    B#2#2#2   balanc@f            -1
-    B#2#2#2   balanc@e             1
-    B#2#2#3   OBJECTIV           5.5
-    B#2#2#3   balan@10            -1
-    B#2#2#3   balanc@f             1
-    B#2#2#4   OBJECTIV           5.5
-    B#2#2#4   init3_4              1
-    B#2#2#4   balan@10             1
-    B#3#1#0   init2_5              1
-    B#3#1#0   balan@11            -1
-    B#3#1#1   OBJECTIV             5
-    B#3#1#1   balan@12            -1
-    B#3#1#1   balan@11             1
-    B#3#1#2   OBJECTIV             5
-    B#3#1#2   balan@13            -1
-    B#3#1#2   balan@12             1
-    B#3#1#3   OBJECTIV             5
-    B#3#1#3   balan@14            -1
-    B#3#1#3   balan@13             1
-    B#3#1#4   OBJECTIV             5
-    B#3#1#4   init3_5              1
-    B#3#1#4   balan@14             1
-    B#3#2#0   init2_6              1
-    B#3#2#0   balan@15            -1
-    B#3#2#1   OBJECTIV           5.5
-    B#3#2#1   balan@16            -1
-    B#3#2#1   balan@15             1
-    B#3#2#2   OBJECTIV           5.5
-    B#3#2#2   balan@17            -1
-    B#3#2#2   balan@16             1
-    B#3#2#3   OBJECTIV           5.5
-    B#3#2#3   balan@18            -1
-    B#3#2#3   balan@17             1
-    B#3#2#4   OBJECTIV           5.5
-    B#3#2#4   init3_6              1
-    B#3#2#4   balan@18             1
-    B#4#1#0   init2_7              1
-    B#4#1#0   balan@19            -1
-    B#4#1#1   OBJECTIV             5
-    B#4#1#1   balan@1a            -1
-    B#4#1#1   balan@19             1
-    B#4#1#2   OBJECTIV             5
-    B#4#1#2   balan@1b            -1
-    B#4#1#2   balan@1a             1
-    B#4#1#3   OBJECTIV             5
-    B#4#1#3   balan@1c            -1
-    B#4#1#3   balan@1b             1
-    B#4#1#4   OBJECTIV             5
-    B#4#1#4   init3_7              1
-    B#4#1#4   balan@1c             1
-    B#4#2#0   init2_8              1
-    B#4#2#0   balan@1d            -1
-    B#4#2#1   OBJECTIV           5.5
-    B#4#2#1   balan@1e            -1
-    B#4#2#1   balan@1d             1
-    B#4#2#2   OBJECTIV           5.5
-    B#4#2#2   balan@1f            -1
-    B#4#2#2   balan@1e             1
-    B#4#2#3   OBJECTIV           5.5
-    B#4#2#3   balan@20            -1
-    B#4#2#3   balan@1f             1
-    B#4#2#4   OBJECTIV           5.5
-    B#4#2#4   init3_8              1
-    B#4#2#4   balan@20             1
-    I#1#1#0   init1_1              1
-    I#1#1#0   balanc@1             1
-    I#1#1#1   OBJECTIV             1
-    I#1#1#1   balanc@2             1
-    I#1#1#1   balanc@1            -1
-    I#1#1#2   OBJECTIV             1
-    I#1#1#2   balanc@3             1
-    I#1#1#2   balanc@2            -1
-    I#1#1#3   OBJECTIV             1
-    I#1#1#3   balanc@4             1
-    I#1#1#3   balanc@3            -1
-    I#1#1#4   OBJECTIV             1
-    I#1#1#4   balanc@4            -1
-    I#1#2#0   init1_2              1
-    I#1#2#0   balanc@5             1
-    I#1#2#1   OBJECTIV           1.1
-    I#1#2#1   balanc@6             1
-    I#1#2#1   balanc@5            -1
-    I#1#2#2   OBJECTIV           1.1
-    I#1#2#2   balanc@7             1
-    I#1#2#2   balanc@6            -1
-    I#1#2#3   OBJECTIV           1.1
-    I#1#2#3   balanc@8             1
-    I#1#2#3   balanc@7            -1
-    I#1#2#4   OBJECTIV           1.1
-    I#1#2#4   balanc@8            -1
-    I#2#1#0   init1_3              1
-    I#2#1#0   balanc@9             1
-    I#2#1#1   OBJECTIV             1
-    I#2#1#1   balanc@a             1
-    I#2#1#1   balanc@9            -1
-    I#2#1#2   OBJECTIV             1
-    I#2#1#2   balanc@b             1
-    I#2#1#2   balanc@a            -1
-    I#2#1#3   OBJECTIV             1
-    I#2#1#3   balanc@c             1
-    I#2#1#3   balanc@b            -1
-    I#2#1#4   OBJECTIV             1
-    I#2#1#4   balanc@c            -1
-    I#2#2#0   init1_4              1
-    I#2#2#0   balanc@d             1
-    I#2#2#1   OBJECTIV           1.1
-    I#2#2#1   balanc@e             1
-    I#2#2#1   balanc@d            -1
-    I#2#2#2   OBJECTIV           1.1
-    I#2#2#2   balanc@f             1
-    I#2#2#2   balanc@e            -1
-    I#2#2#3   OBJECTIV           1.1
-    I#2#2#3   balan@10             1
-    I#2#2#3   balanc@f            -1
-    I#2#2#4   OBJECTIV           1.1
-    I#2#2#4   balan@10            -1
-    I#3#1#0   init1_5              1
-    I#3#1#0   balan@11             1
-    I#3#1#1   OBJECTIV             1
-    I#3#1#1   balan@12             1
-    I#3#1#1   balan@11            -1
-    I#3#1#2   OBJECTIV             1
-    I#3#1#2   balan@13             1
-    I#3#1#2   balan@12            -1
-    I#3#1#3   OBJECTIV             1
-    I#3#1#3   balan@14             1
-    I#3#1#3   balan@13            -1
-    I#3#1#4   OBJECTIV             1
-    I#3#1#4   balan@14            -1
-    I#3#2#0   init1_6              1
-    I#3#2#0   balan@15             1
-    I#3#2#1   OBJECTIV           1.1
-    I#3#2#1   balan@16             1
-    I#3#2#1   balan@15            -1
-    I#3#2#2   OBJECTIV           1.1
-    I#3#2#2   balan@17             1
-    I#3#2#2   balan@16            -1
-    I#3#2#3   OBJECTIV           1.1
-    I#3#2#3   balan@18             1
-    I#3#2#3   balan@17            -1
-    I#3#2#4   OBJECTIV           1.1
-    I#3#2#4   balan@18            -1
-    I#4#1#0   init1_7              1
-    I#4#1#0   balan@19             1
-    I#4#1#1   OBJECTIV             1
-    I#4#1#1   balan@1a             1
-    I#4#1#1   balan@19            -1
-    I#4#1#2   OBJECTIV             1
-    I#4#1#2   balan@1b             1
-    I#4#1#2   balan@1a            -1
-    I#4#1#3   OBJECTIV             1
-    I#4#1#3   balan@1c             1
-    I#4#1#3   balan@1b            -1
-    I#4#1#4   OBJECTIV             1
-    I#4#1#4   balan@1c            -1
-    I#4#2#0   init1_8              1
-    I#4#2#0   balan@1d             1
-    I#4#2#1   OBJECTIV           1.1
-    I#4#2#1   balan@1e             1
-    I#4#2#1   balan@1d            -1
-    I#4#2#2   OBJECTIV           1.1
-    I#4#2#2   balan@1f             1
-    I#4#2#2   balan@1e            -1
-    I#4#2#3   OBJECTIV           1.1
-    I#4#2#3   balan@20             1
-    I#4#2#3   balan@1f            -1
-    I#4#2#4   OBJECTIV           1.1
-    I#4#2#4   balan@20            -1
+    r#1#1#0   init2_1              1
+    r#1#1#0   balanc@1            -1
+    r#1#1#1   OBJECTIV             5
+    r#1#1#1   balanc@2            -1
+    r#1#1#1   balanc@1             1
+    r#1#1#2   OBJECTIV             5
+    r#1#1#2   balanc@3            -1
+    r#1#1#2   balanc@2             1
+    r#1#1#3   OBJECTIV             5
+    r#1#1#3   balanc@4            -1
+    r#1#1#3   balanc@3             1
+    r#1#1#4   OBJECTIV             5
+    r#1#1#4   init3_1              1
+    r#1#1#4   balanc@4             1
+    r#1#2#0   init2_2              1
+    r#1#2#0   balanc@5            -1
+    r#1#2#1   OBJECTIV           5.5
+    r#1#2#1   balanc@6            -1
+    r#1#2#1   balanc@5             1
+    r#1#2#2   OBJECTIV           5.5
+    r#1#2#2   balanc@7            -1
+    r#1#2#2   balanc@6             1
+    r#1#2#3   OBJECTIV           5.5
+    r#1#2#3   balanc@8            -1
+    r#1#2#3   balanc@7             1
+    r#1#2#4   OBJECTIV           5.5
+    r#1#2#4   init3_2              1
+    r#1#2#4   balanc@8             1
+    r#2#1#0   init2_3              1
+    r#2#1#0   balanc@9            -1
+    r#2#1#1   OBJECTIV             5
+    r#2#1#1   balanc@a            -1
+    r#2#1#1   balanc@9             1
+    r#2#1#2   OBJECTIV             5
+    r#2#1#2   balanc@b            -1
+    r#2#1#2   balanc@a             1
+    r#2#1#3   OBJECTIV             5
+    r#2#1#3   balanc@c            -1
+    r#2#1#3   balanc@b             1
+    r#2#1#4   OBJECTIV             5
+    r#2#1#4   init3_3              1
+    r#2#1#4   balanc@c             1
+    r#2#2#0   init2_4              1
+    r#2#2#0   balanc@d            -1
+    r#2#2#1   OBJECTIV           5.5
+    r#2#2#1   balanc@e            -1
+    r#2#2#1   balanc@d             1
+    r#2#2#2   OBJECTIV           5.5
+    r#2#2#2   balanc@f            -1
+    r#2#2#2   balanc@e             1
+    r#2#2#3   OBJECTIV           5.5
+    r#2#2#3   balan@10            -1
+    r#2#2#3   balanc@f             1
+    r#2#2#4   OBJECTIV           5.5
+    r#2#2#4   init3_4              1
+    r#2#2#4   balan@10             1
+    r#3#1#0   init2_5              1
+    r#3#1#0   balan@11            -1
+    r#3#1#1   OBJECTIV             5
+    r#3#1#1   balan@12            -1
+    r#3#1#1   balan@11             1
+    r#3#1#2   OBJECTIV             5
+    r#3#1#2   balan@13            -1
+    r#3#1#2   balan@12             1
+    r#3#1#3   OBJECTIV             5
+    r#3#1#3   balan@14            -1
+    r#3#1#3   balan@13             1
+    r#3#1#4   OBJECTIV             5
+    r#3#1#4   init3_5              1
+    r#3#1#4   balan@14             1
+    r#3#2#0   init2_6              1
+    r#3#2#0   balan@15            -1
+    r#3#2#1   OBJECTIV           5.5
+    r#3#2#1   balan@16            -1
+    r#3#2#1   balan@15             1
+    r#3#2#2   OBJECTIV           5.5
+    r#3#2#2   balan@17            -1
+    r#3#2#2   balan@16             1
+    r#3#2#3   OBJECTIV           5.5
+    r#3#2#3   balan@18            -1
+    r#3#2#3   balan@17             1
+    r#3#2#4   OBJECTIV           5.5
+    r#3#2#4   init3_6              1
+    r#3#2#4   balan@18             1
+    r#4#1#0   init2_7              1
+    r#4#1#0   balan@19            -1
+    r#4#1#1   OBJECTIV             5
+    r#4#1#1   balan@1a            -1
+    r#4#1#1   balan@19             1
+    r#4#1#2   OBJECTIV             5
+    r#4#1#2   balan@1b            -1
+    r#4#1#2   balan@1a             1
+    r#4#1#3   OBJECTIV             5
+    r#4#1#3   balan@1c            -1
+    r#4#1#3   balan@1b             1
+    r#4#1#4   OBJECTIV             5
+    r#4#1#4   init3_7              1
+    r#4#1#4   balan@1c             1
+    r#4#2#0   init2_8              1
+    r#4#2#0   balan@1d            -1
+    r#4#2#1   OBJECTIV           5.5
+    r#4#2#1   balan@1e            -1
+    r#4#2#1   balan@1d             1
+    r#4#2#2   OBJECTIV           5.5
+    r#4#2#2   balan@1f            -1
+    r#4#2#2   balan@1e             1
+    r#4#2#3   OBJECTIV           5.5
+    r#4#2#3   balan@20            -1
+    r#4#2#3   balan@1f             1
+    r#4#2#4   OBJECTIV           5.5
+    r#4#2#4   init3_8              1
+    r#4#2#4   balan@20             1
+    s#1#1#0   init1_1              1
+    s#1#1#0   balanc@1             1
+    s#1#1#1   OBJECTIV             1
+    s#1#1#1   balanc@2             1
+    s#1#1#1   balanc@1            -1
+    s#1#1#2   OBJECTIV             1
+    s#1#1#2   balanc@3             1
+    s#1#1#2   balanc@2            -1
+    s#1#1#3   OBJECTIV             1
+    s#1#1#3   balanc@4             1
+    s#1#1#3   balanc@3            -1
+    s#1#1#4   OBJECTIV             1
+    s#1#1#4   balanc@4            -1
+    s#1#2#0   init1_2              1
+    s#1#2#0   balanc@5             1
+    s#1#2#1   OBJECTIV           1.1
+    s#1#2#1   balanc@6             1
+    s#1#2#1   balanc@5            -1
+    s#1#2#2   OBJECTIV           1.1
+    s#1#2#2   balanc@7             1
+    s#1#2#2   balanc@6            -1
+    s#1#2#3   OBJECTIV           1.1
+    s#1#2#3   balanc@8             1
+    s#1#2#3   balanc@7            -1
+    s#1#2#4   OBJECTIV           1.1
+    s#1#2#4   balanc@8            -1
+    s#2#1#0   init1_3              1
+    s#2#1#0   balanc@9             1
+    s#2#1#1   OBJECTIV             1
+    s#2#1#1   balanc@a             1
+    s#2#1#1   balanc@9            -1
+    s#2#1#2   OBJECTIV             1
+    s#2#1#2   balanc@b             1
+    s#2#1#2   balanc@a            -1
+    s#2#1#3   OBJECTIV             1
+    s#2#1#3   balanc@c             1
+    s#2#1#3   balanc@b            -1
+    s#2#1#4   OBJECTIV             1
+    s#2#1#4   balanc@c            -1
+    s#2#2#0   init1_4              1
+    s#2#2#0   balanc@d             1
+    s#2#2#1   OBJECTIV           1.1
+    s#2#2#1   balanc@e             1
+    s#2#2#1   balanc@d            -1
+    s#2#2#2   OBJECTIV           1.1
+    s#2#2#2   balanc@f             1
+    s#2#2#2   balanc@e            -1
+    s#2#2#3   OBJECTIV           1.1
+    s#2#2#3   balan@10             1
+    s#2#2#3   balanc@f            -1
+    s#2#2#4   OBJECTIV           1.1
+    s#2#2#4   balan@10            -1
+    s#3#1#0   init1_5              1
+    s#3#1#0   balan@11             1
+    s#3#1#1   OBJECTIV             1
+    s#3#1#1   balan@12             1
+    s#3#1#1   balan@11            -1
+    s#3#1#2   OBJECTIV             1
+    s#3#1#2   balan@13             1
+    s#3#1#2   balan@12            -1
+    s#3#1#3   OBJECTIV             1
+    s#3#1#3   balan@14             1
+    s#3#1#3   balan@13            -1
+    s#3#1#4   OBJECTIV             1
+    s#3#1#4   balan@14            -1
+    s#3#2#0   init1_6              1
+    s#3#2#0   balan@15             1
+    s#3#2#1   OBJECTIV           1.1
+    s#3#2#1   balan@16             1
+    s#3#2#1   balan@15            -1
+    s#3#2#2   OBJECTIV           1.1
+    s#3#2#2   balan@17             1
+    s#3#2#2   balan@16            -1
+    s#3#2#3   OBJECTIV           1.1
+    s#3#2#3   balan@18             1
+    s#3#2#3   balan@17            -1
+    s#3#2#4   OBJECTIV           1.1
+    s#3#2#4   balan@18            -1
+    s#4#1#0   init1_7              1
+    s#4#1#0   balan@19             1
+    s#4#1#1   OBJECTIV             1
+    s#4#1#1   balan@1a             1
+    s#4#1#1   balan@19            -1
+    s#4#1#2   OBJECTIV             1
+    s#4#1#2   balan@1b             1
+    s#4#1#2   balan@1a            -1
+    s#4#1#3   OBJECTIV             1
+    s#4#1#3   balan@1c             1
+    s#4#1#3   balan@1b            -1
+    s#4#1#4   OBJECTIV             1
+    s#4#1#4   balan@1c            -1
+    s#4#2#0   init1_8              1
+    s#4#2#0   balan@1d             1
+    s#4#2#1   OBJECTIV           1.1
+    s#4#2#1   balan@1e             1
+    s#4#2#1   balan@1d            -1
+    s#4#2#2   OBJECTIV           1.1
+    s#4#2#2   balan@1f             1
+    s#4#2#2   balan@1e            -1
+    s#4#2#3   OBJECTIV           1.1
+    s#4#2#3   balan@20             1
+    s#4#2#3   balan@1f            -1
+    s#4#2#4   OBJECTIV           1.1
+    s#4#2#4   balan@20            -1
 RHS
     RHS       select_1             2
     RHS       balanc@1           655
@@ -1180,230 +1180,230 @@ RHS
     RHS       valid_6           1910
     RHS       valid_7           2221
 BOUNDS
- LO BOUND     B#1#1#0              0
- PL BOUND     B#1#1#0 
- LO BOUND     B#1#1#1              0
- PL BOUND     B#1#1#1 
- LO BOUND     B#1#1#2              0
- PL BOUND     B#1#1#2 
- LO BOUND     B#1#1#3              0
- PL BOUND     B#1#1#3 
- LO BOUND     B#1#1#4              0
- PL BOUND     B#1#1#4 
- LO BOUND     B#1#2#0              0
- PL BOUND     B#1#2#0 
- LO BOUND     B#1#2#1              0
- PL BOUND     B#1#2#1 
- LO BOUND     B#1#2#2              0
- PL BOUND     B#1#2#2 
- LO BOUND     B#1#2#3              0
- PL BOUND     B#1#2#3 
- LO BOUND     B#1#2#4              0
- PL BOUND     B#1#2#4 
- LO BOUND     B#2#1#0              0
- PL BOUND     B#2#1#0 
- LO BOUND     B#2#1#1              0
- PL BOUND     B#2#1#1 
- LO BOUND     B#2#1#2              0
- PL BOUND     B#2#1#2 
- LO BOUND     B#2#1#3              0
- PL BOUND     B#2#1#3 
- LO BOUND     B#2#1#4              0
- PL BOUND     B#2#1#4 
- LO BOUND     B#2#2#0              0
- PL BOUND     B#2#2#0 
- LO BOUND     B#2#2#1              0
- PL BOUND     B#2#2#1 
- LO BOUND     B#2#2#2              0
- PL BOUND     B#2#2#2 
- LO BOUND     B#2#2#3              0
- PL BOUND     B#2#2#3 
- LO BOUND     B#2#2#4              0
- PL BOUND     B#2#2#4 
- LO BOUND     B#3#1#0              0
- PL BOUND     B#3#1#0 
- LO BOUND     B#3#1#1              0
- PL BOUND     B#3#1#1 
- LO BOUND     B#3#1#2              0
- PL BOUND     B#3#1#2 
- LO BOUND     B#3#1#3              0
- PL BOUND     B#3#1#3 
- LO BOUND     B#3#1#4              0
- PL BOUND     B#3#1#4 
- LO BOUND     B#3#2#0              0
- PL BOUND     B#3#2#0 
- LO BOUND     B#3#2#1              0
- PL BOUND     B#3#2#1 
- LO BOUND     B#3#2#2              0
- PL BOUND     B#3#2#2 
- LO BOUND     B#3#2#3              0
- PL BOUND     B#3#2#3 
- LO BOUND     B#3#2#4              0
- PL BOUND     B#3#2#4 
- LO BOUND     B#4#1#0              0
- PL BOUND     B#4#1#0 
- LO BOUND     B#4#1#1              0
- PL BOUND     B#4#1#1 
- LO BOUND     B#4#1#2              0
- PL BOUND     B#4#1#2 
- LO BOUND     B#4#1#3              0
- PL BOUND     B#4#1#3 
- LO BOUND     B#4#1#4              0
- PL BOUND     B#4#1#4 
- LO BOUND     B#4#2#0              0
- PL BOUND     B#4#2#0 
- LO BOUND     B#4#2#1              0
- PL BOUND     B#4#2#1 
- LO BOUND     B#4#2#2              0
- PL BOUND     B#4#2#2 
- LO BOUND     B#4#2#3              0
- PL BOUND     B#4#2#3 
- LO BOUND     B#4#2#4              0
- PL BOUND     B#4#2#4 
- LO BOUND     I#1#1#0              0
- PL BOUND     I#1#1#0 
- LO BOUND     I#1#1#1              0
- PL BOUND     I#1#1#1 
- LO BOUND     I#1#1#2              0
- PL BOUND     I#1#1#2 
- LO BOUND     I#1#1#3              0
- PL BOUND     I#1#1#3 
- LO BOUND     I#1#1#4              0
- PL BOUND     I#1#1#4 
- LO BOUND     I#1#2#0              0
- PL BOUND     I#1#2#0 
- LO BOUND     I#1#2#1              0
- PL BOUND     I#1#2#1 
- LO BOUND     I#1#2#2              0
- PL BOUND     I#1#2#2 
- LO BOUND     I#1#2#3              0
- PL BOUND     I#1#2#3 
- LO BOUND     I#1#2#4              0
- PL BOUND     I#1#2#4 
- LO BOUND     I#2#1#0              0
- PL BOUND     I#2#1#0 
- LO BOUND     I#2#1#1              0
- PL BOUND     I#2#1#1 
- LO BOUND     I#2#1#2              0
- PL BOUND     I#2#1#2 
- LO BOUND     I#2#1#3              0
- PL BOUND     I#2#1#3 
- LO BOUND     I#2#1#4              0
- PL BOUND     I#2#1#4 
- LO BOUND     I#2#2#0              0
- PL BOUND     I#2#2#0 
- LO BOUND     I#2#2#1              0
- PL BOUND     I#2#2#1 
- LO BOUND     I#2#2#2              0
- PL BOUND     I#2#2#2 
- LO BOUND     I#2#2#3              0
- PL BOUND     I#2#2#3 
- LO BOUND     I#2#2#4              0
- PL BOUND     I#2#2#4 
- LO BOUND     I#3#1#0              0
- PL BOUND     I#3#1#0 
- LO BOUND     I#3#1#1              0
- PL BOUND     I#3#1#1 
- LO BOUND     I#3#1#2              0
- PL BOUND     I#3#1#2 
- LO BOUND     I#3#1#3              0
- PL BOUND     I#3#1#3 
- LO BOUND     I#3#1#4              0
- PL BOUND     I#3#1#4 
- LO BOUND     I#3#2#0              0
- PL BOUND     I#3#2#0 
- LO BOUND     I#3#2#1              0
- PL BOUND     I#3#2#1 
- LO BOUND     I#3#2#2              0
- PL BOUND     I#3#2#2 
- LO BOUND     I#3#2#3              0
- PL BOUND     I#3#2#3 
- LO BOUND     I#3#2#4              0
- PL BOUND     I#3#2#4 
- LO BOUND     I#4#1#0              0
- PL BOUND     I#4#1#0 
- LO BOUND     I#4#1#1              0
- PL BOUND     I#4#1#1 
- LO BOUND     I#4#1#2              0
- PL BOUND     I#4#1#2 
- LO BOUND     I#4#1#3              0
- PL BOUND     I#4#1#3 
- LO BOUND     I#4#1#4              0
- PL BOUND     I#4#1#4 
- LO BOUND     I#4#2#0              0
- PL BOUND     I#4#2#0 
- LO BOUND     I#4#2#1              0
- PL BOUND     I#4#2#1 
- LO BOUND     I#4#2#2              0
- PL BOUND     I#4#2#2 
- LO BOUND     I#4#2#3              0
- PL BOUND     I#4#2#3 
- LO BOUND     I#4#2#4              0
- PL BOUND     I#4#2#4 
- LO BOUND     f#1#1#1              0
- PL BOUND     f#1#1#1 
- LO BOUND     f#1#1#2              0
- PL BOUND     f#1#1#2 
- LO BOUND     f#1#1#3              0
- PL BOUND     f#1#1#3 
- LO BOUND     f#1#1#4              0
- PL BOUND     f#1#1#4 
- LO BOUND     f#1#2#1              0
- PL BOUND     f#1#2#1 
- LO BOUND     f#1#2#2              0
- PL BOUND     f#1#2#2 
- LO BOUND     f#1#2#3              0
- PL BOUND     f#1#2#3 
- LO BOUND     f#1#2#4              0
- PL BOUND     f#1#2#4 
- LO BOUND     f#2#1#1              0
- PL BOUND     f#2#1#1 
- LO BOUND     f#2#1#2              0
- PL BOUND     f#2#1#2 
- LO BOUND     f#2#1#3              0
- PL BOUND     f#2#1#3 
- LO BOUND     f#2#1#4              0
- PL BOUND     f#2#1#4 
- LO BOUND     f#2#2#1              0
- PL BOUND     f#2#2#1 
- LO BOUND     f#2#2#2              0
- PL BOUND     f#2#2#2 
- LO BOUND     f#2#2#3              0
- PL BOUND     f#2#2#3 
- LO BOUND     f#2#2#4              0
- PL BOUND     f#2#2#4 
- LO BOUND     f#3#1#1              0
- PL BOUND     f#3#1#1 
- LO BOUND     f#3#1#2              0
- PL BOUND     f#3#1#2 
- LO BOUND     f#3#1#3              0
- PL BOUND     f#3#1#3 
- LO BOUND     f#3#1#4              0
- PL BOUND     f#3#1#4 
- LO BOUND     f#3#2#1              0
- PL BOUND     f#3#2#1 
- LO BOUND     f#3#2#2              0
- PL BOUND     f#3#2#2 
- LO BOUND     f#3#2#3              0
- PL BOUND     f#3#2#3 
- LO BOUND     f#3#2#4              0
- PL BOUND     f#3#2#4 
- LO BOUND     f#4#1#1              0
- PL BOUND     f#4#1#1 
- LO BOUND     f#4#1#2              0
- PL BOUND     f#4#1#2 
- LO BOUND     f#4#1#3              0
- PL BOUND     f#4#1#3 
- LO BOUND     f#4#1#4              0
- PL BOUND     f#4#1#4 
- LO BOUND     f#4#2#1              0
- PL BOUND     f#4#2#1 
- LO BOUND     f#4#2#2              0
- PL BOUND     f#4#2#2 
- LO BOUND     f#4#2#3              0
- PL BOUND     f#4#2#3 
- LO BOUND     f#4#2#4              0
- PL BOUND     f#4#2#4 
+ LO BOUND     r#1#1#0              0
+ PL BOUND     r#1#1#0 
+ LO BOUND     r#1#1#1              0
+ PL BOUND     r#1#1#1 
+ LO BOUND     r#1#1#2              0
+ PL BOUND     r#1#1#2 
+ LO BOUND     r#1#1#3              0
+ PL BOUND     r#1#1#3 
+ LO BOUND     r#1#1#4              0
+ PL BOUND     r#1#1#4 
+ LO BOUND     r#1#2#0              0
+ PL BOUND     r#1#2#0 
+ LO BOUND     r#1#2#1              0
+ PL BOUND     r#1#2#1 
+ LO BOUND     r#1#2#2              0
+ PL BOUND     r#1#2#2 
+ LO BOUND     r#1#2#3              0
+ PL BOUND     r#1#2#3 
+ LO BOUND     r#1#2#4              0
+ PL BOUND     r#1#2#4 
+ LO BOUND     r#2#1#0              0
+ PL BOUND     r#2#1#0 
+ LO BOUND     r#2#1#1              0
+ PL BOUND     r#2#1#1 
+ LO BOUND     r#2#1#2              0
+ PL BOUND     r#2#1#2 
+ LO BOUND     r#2#1#3              0
+ PL BOUND     r#2#1#3 
+ LO BOUND     r#2#1#4              0
+ PL BOUND     r#2#1#4 
+ LO BOUND     r#2#2#0              0
+ PL BOUND     r#2#2#0 
+ LO BOUND     r#2#2#1              0
+ PL BOUND     r#2#2#1 
+ LO BOUND     r#2#2#2              0
+ PL BOUND     r#2#2#2 
+ LO BOUND     r#2#2#3              0
+ PL BOUND     r#2#2#3 
+ LO BOUND     r#2#2#4              0
+ PL BOUND     r#2#2#4 
+ LO BOUND     r#3#1#0              0
+ PL BOUND     r#3#1#0 
+ LO BOUND     r#3#1#1              0
+ PL BOUND     r#3#1#1 
+ LO BOUND     r#3#1#2              0
+ PL BOUND     r#3#1#2 
+ LO BOUND     r#3#1#3              0
+ PL BOUND     r#3#1#3 
+ LO BOUND     r#3#1#4              0
+ PL BOUND     r#3#1#4 
+ LO BOUND     r#3#2#0              0
+ PL BOUND     r#3#2#0 
+ LO BOUND     r#3#2#1              0
+ PL BOUND     r#3#2#1 
+ LO BOUND     r#3#2#2              0
+ PL BOUND     r#3#2#2 
+ LO BOUND     r#3#2#3              0
+ PL BOUND     r#3#2#3 
+ LO BOUND     r#3#2#4              0
+ PL BOUND     r#3#2#4 
+ LO BOUND     r#4#1#0              0
+ PL BOUND     r#4#1#0 
+ LO BOUND     r#4#1#1              0
+ PL BOUND     r#4#1#1 
+ LO BOUND     r#4#1#2              0
+ PL BOUND     r#4#1#2 
+ LO BOUND     r#4#1#3              0
+ PL BOUND     r#4#1#3 
+ LO BOUND     r#4#1#4              0
+ PL BOUND     r#4#1#4 
+ LO BOUND     r#4#2#0              0
+ PL BOUND     r#4#2#0 
+ LO BOUND     r#4#2#1              0
+ PL BOUND     r#4#2#1 
+ LO BOUND     r#4#2#2              0
+ PL BOUND     r#4#2#2 
+ LO BOUND     r#4#2#3              0
+ PL BOUND     r#4#2#3 
+ LO BOUND     r#4#2#4              0
+ PL BOUND     r#4#2#4 
+ LO BOUND     s#1#1#0              0
+ PL BOUND     s#1#1#0 
+ LO BOUND     s#1#1#1              0
+ PL BOUND     s#1#1#1 
+ LO BOUND     s#1#1#2              0
+ PL BOUND     s#1#1#2 
+ LO BOUND     s#1#1#3              0
+ PL BOUND     s#1#1#3 
+ LO BOUND     s#1#1#4              0
+ PL BOUND     s#1#1#4 
+ LO BOUND     s#1#2#0              0
+ PL BOUND     s#1#2#0 
+ LO BOUND     s#1#2#1              0
+ PL BOUND     s#1#2#1 
+ LO BOUND     s#1#2#2              0
+ PL BOUND     s#1#2#2 
+ LO BOUND     s#1#2#3              0
+ PL BOUND     s#1#2#3 
+ LO BOUND     s#1#2#4              0
+ PL BOUND     s#1#2#4 
+ LO BOUND     s#2#1#0              0
+ PL BOUND     s#2#1#0 
+ LO BOUND     s#2#1#1              0
+ PL BOUND     s#2#1#1 
+ LO BOUND     s#2#1#2              0
+ PL BOUND     s#2#1#2 
+ LO BOUND     s#2#1#3              0
+ PL BOUND     s#2#1#3 
+ LO BOUND     s#2#1#4              0
+ PL BOUND     s#2#1#4 
+ LO BOUND     s#2#2#0              0
+ PL BOUND     s#2#2#0 
+ LO BOUND     s#2#2#1              0
+ PL BOUND     s#2#2#1 
+ LO BOUND     s#2#2#2              0
+ PL BOUND     s#2#2#2 
+ LO BOUND     s#2#2#3              0
+ PL BOUND     s#2#2#3 
+ LO BOUND     s#2#2#4              0
+ PL BOUND     s#2#2#4 
+ LO BOUND     s#3#1#0              0
+ PL BOUND     s#3#1#0 
+ LO BOUND     s#3#1#1              0
+ PL BOUND     s#3#1#1 
+ LO BOUND     s#3#1#2              0
+ PL BOUND     s#3#1#2 
+ LO BOUND     s#3#1#3              0
+ PL BOUND     s#3#1#3 
+ LO BOUND     s#3#1#4              0
+ PL BOUND     s#3#1#4 
+ LO BOUND     s#3#2#0              0
+ PL BOUND     s#3#2#0 
+ LO BOUND     s#3#2#1              0
+ PL BOUND     s#3#2#1 
+ LO BOUND     s#3#2#2              0
+ PL BOUND     s#3#2#2 
+ LO BOUND     s#3#2#3              0
+ PL BOUND     s#3#2#3 
+ LO BOUND     s#3#2#4              0
+ PL BOUND     s#3#2#4 
+ LO BOUND     s#4#1#0              0
+ PL BOUND     s#4#1#0 
+ LO BOUND     s#4#1#1              0
+ PL BOUND     s#4#1#1 
+ LO BOUND     s#4#1#2              0
+ PL BOUND     s#4#1#2 
+ LO BOUND     s#4#1#3              0
+ PL BOUND     s#4#1#3 
+ LO BOUND     s#4#1#4              0
+ PL BOUND     s#4#1#4 
+ LO BOUND     s#4#2#0              0
+ PL BOUND     s#4#2#0 
+ LO BOUND     s#4#2#1              0
+ PL BOUND     s#4#2#1 
+ LO BOUND     s#4#2#2              0
+ PL BOUND     s#4#2#2 
+ LO BOUND     s#4#2#3              0
+ PL BOUND     s#4#2#3 
+ LO BOUND     s#4#2#4              0
+ PL BOUND     s#4#2#4 
+ LO BOUND     x#1#1#1              0
+ PL BOUND     x#1#1#1 
+ LO BOUND     x#1#1#2              0
+ PL BOUND     x#1#1#2 
+ LO BOUND     x#1#1#3              0
+ PL BOUND     x#1#1#3 
+ LO BOUND     x#1#1#4              0
+ PL BOUND     x#1#1#4 
+ LO BOUND     x#1#2#1              0
+ PL BOUND     x#1#2#1 
+ LO BOUND     x#1#2#2              0
+ PL BOUND     x#1#2#2 
+ LO BOUND     x#1#2#3              0
+ PL BOUND     x#1#2#3 
+ LO BOUND     x#1#2#4              0
+ PL BOUND     x#1#2#4 
+ LO BOUND     x#2#1#1              0
+ PL BOUND     x#2#1#1 
+ LO BOUND     x#2#1#2              0
+ PL BOUND     x#2#1#2 
+ LO BOUND     x#2#1#3              0
+ PL BOUND     x#2#1#3 
+ LO BOUND     x#2#1#4              0
+ PL BOUND     x#2#1#4 
+ LO BOUND     x#2#2#1              0
+ PL BOUND     x#2#2#1 
+ LO BOUND     x#2#2#2              0
+ PL BOUND     x#2#2#2 
+ LO BOUND     x#2#2#3              0
+ PL BOUND     x#2#2#3 
+ LO BOUND     x#2#2#4              0
+ PL BOUND     x#2#2#4 
+ LO BOUND     x#3#1#1              0
+ PL BOUND     x#3#1#1 
+ LO BOUND     x#3#1#2              0
+ PL BOUND     x#3#1#2 
+ LO BOUND     x#3#1#3              0
+ PL BOUND     x#3#1#3 
+ LO BOUND     x#3#1#4              0
+ PL BOUND     x#3#1#4 
+ LO BOUND     x#3#2#1              0
+ PL BOUND     x#3#2#1 
+ LO BOUND     x#3#2#2              0
+ PL BOUND     x#3#2#2 
+ LO BOUND     x#3#2#3              0
+ PL BOUND     x#3#2#3 
+ LO BOUND     x#3#2#4              0
+ PL BOUND     x#3#2#4 
+ LO BOUND     x#4#1#1              0
+ PL BOUND     x#4#1#1 
+ LO BOUND     x#4#1#2              0
+ PL BOUND     x#4#1#2 
+ LO BOUND     x#4#1#3              0
+ PL BOUND     x#4#1#3 
+ LO BOUND     x#4#1#4              0
+ PL BOUND     x#4#1#4 
+ LO BOUND     x#4#2#1              0
+ PL BOUND     x#4#2#1 
+ LO BOUND     x#4#2#2              0
+ PL BOUND     x#4#2#2 
+ LO BOUND     x#4#2#3              0
+ PL BOUND     x#4#2#3 
+ LO BOUND     x#4#2#4              0
+ PL BOUND     x#4#2#4 
  LO BOUND     y#1#1#1              0
  PL BOUND     y#1#1#1 
  LO BOUND     y#1#1#2              0
@@ -1628,18 +1628,18 @@ BOUNDS
  PL BOUND     y#4#7#3 
  LO BOUND     y#4#7#4              0
  PL BOUND     y#4#7#4 
- LO BOUND     p#1                  0
- UP BOUND     p#1                  1
- LO BOUND     p#2                  0
- UP BOUND     p#2                  1
- LO BOUND     p#3                  0
- UP BOUND     p#3                  1
- LO BOUND     p#4                  0
- UP BOUND     p#4                  1
- LO BOUND     p#5                  0
- UP BOUND     p#5                  1
- LO BOUND     p#6                  0
- UP BOUND     p#6                  1
- LO BOUND     p#7                  0
- UP BOUND     p#7                  1
+ LO BOUND     z#1                  0
+ UP BOUND     z#1                  1
+ LO BOUND     z#2                  0
+ UP BOUND     z#2                  1
+ LO BOUND     z#3                  0
+ UP BOUND     z#3                  1
+ LO BOUND     z#4                  0
+ UP BOUND     z#4                  1
+ LO BOUND     z#5                  0
+ UP BOUND     z#5                  1
+ LO BOUND     z#6                  0
+ UP BOUND     z#6                  1
+ LO BOUND     z#7                  0
+ UP BOUND     z#7                  1
 ENDATA
